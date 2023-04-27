@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import Svgs from '../constants/svgs';
 
 export default class Icon extends React.PureComponent {
@@ -7,7 +8,6 @@ export default class Icon extends React.PureComponent {
         return (
             <span
                 style={style.iconStyle}
-                className='icon'
                 aria-hidden='true'
                 dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA}}
             />
@@ -15,7 +15,7 @@ export default class Icon extends React.PureComponent {
     }
 }
 
-function getStyle(): { [key: string]: React.CSSProperties } {
+function getStyle(): {[key: string]: React.CSSProperties} {
     return {
         iconStyle: {
             position: 'relative',

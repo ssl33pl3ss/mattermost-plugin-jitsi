@@ -34,15 +34,13 @@ describe('Conference', () => {
     };
 
     const actions = {
-        openJitsiMeeting: jest.fn(),
-        setUserStatus: jest.fn()
+        openJitsiMeeting: jest.fn()
     };
 
     const defaultProps = {
         post: basePost,
         jwt: null,
-        actions,
-        currentUserId: 'test'
+        actions
     };
 
     Conference.prototype.getViewportWidth = () => 10;

@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"reflect"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
 )
@@ -46,10 +45,6 @@ func (c *configuration) GetJitsiURL() string {
 	return publicJitsiServerURL
 }
 
-func (c *configuration) GetDefaultJitsiURL() string {
-	return publicJitsiServerURL
-}
-
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
 // your configuration has reference types.
 func (c *configuration) Clone() *configuration {
@@ -68,10 +63,10 @@ func (c *configuration) IsValid() error {
 
 	if c.JitsiJWT {
 		if len(c.JitsiAppID) == 0 {
-			return fmt.Errorf("error no Jitsi app ID was provided to use with JWT")
+			return fmt.Errorf("error no Jitsi app ID was provided")
 		}
 		if len(c.JitsiAppSecret) == 0 {
-			return fmt.Errorf("error no Jitsi app secret provided to use with JWT")
+			return fmt.Errorf("error no Jitsi app secter provided")
 		}
 		if c.JitsiLinkValidTime < 1 {
 			c.JitsiLinkValidTime = 30
@@ -132,28 +127,7 @@ func (p *Plugin) OnConfigurationChange() error {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
 
-	enableDiagnostics := false
-	if config := p.API.GetConfig(); config != nil {
-		if configValue := config.LogSettings.EnableDiagnostics; configValue != nil {
-			enableDiagnostics = *configValue
-		}
-	}
-
-	p.tracker = telemetry.NewTracker(p.telemetryClient, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.Id, manifest.Version, "jitsi", enableDiagnostics)
-
 	p.setConfiguration(configuration)
-
-	return nil
-}
-
-// OnDeactivate is invoked once the user disables the plugin
-func (p *Plugin) OnDeactivate() error {
-	if p.telemetryClient != nil {
-		err := p.telemetryClient.Close()
-		if err != nil {
-			p.API.LogWarn("OnDeactivate: failed to close telemetryClient", "error", err.Error())
-		}
-	}
 
 	return nil
 }

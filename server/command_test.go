@@ -2,12 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
-	"github.com/mattermost/mattermost-plugin-api/i18n"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/mattermost/mattermost-server/v5/plugin/plugintest"
@@ -29,15 +26,15 @@ func TestCommandHelp(t *testing.T) {
 
 	p.SetAPI(&apiMock)
 
-	i18nBundle, err := i18n.InitBundle(p.API, filepath.Join("assets", "i18n"))
+	i18nBundle, err := p.initI18nBundle()
 	require.Nil(t, err)
-	p.b = i18nBundle
+	p.i18nBundle = i18nBundle
 
 	helpText := strings.ReplaceAll(`###### Mattermost Jitsi Plugin - Slash Command help
 * |/jitsi| - Create a new meeting
-* |/jitsi start [topic]| - Create a new meeting with specified topic
+* |/jitsi [topic]| - Create a new meeting with specified topic
 * |/jitsi help| - Show this help text
-* |/jitsi settings see| - View your current user settings for the Jitsi plugin
+* |/jitsi settings| - View your current user settings for the Jitsi plugin
 * |/jitsi settings [setting] [value]| - Update your user settings (see below for options)
 
 ###### Jitsi Settings:
@@ -58,7 +55,7 @@ func TestCommandHelp(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestCommandSettings(t *testing.T) {
+func TestCommandSetings(t *testing.T) {
 	p := Plugin{
 		configuration: &configuration{
 			JitsiURL:          "http://test",
@@ -106,7 +103,7 @@ func TestCommandSettings(t *testing.T) {
 		},
 		{
 			name:      "get current user settings",
-			command:   "/jitsi settings see",
+			command:   "/jitsi settings",
 			output:    "###### Jitsi Settings:\n* Embedded: `false`\n* Naming Scheme: `mattermost`",
 			newConfig: nil,
 		},
@@ -121,9 +118,9 @@ func TestCommandSettings(t *testing.T) {
 			apiMock.On("GetUser", "test-user").Return(&model.User{Id: "test-user", Locale: "en"}, nil)
 			apiMock.On("GetBundlePath").Return("..", nil)
 
-			i18nBundle, err := i18n.InitBundle(p.API, filepath.Join("assets", "i18n"))
+			i18nBundle, err := p.initI18nBundle()
 			require.Nil(t, err)
-			p.b = i18nBundle
+			p.i18nBundle = i18nBundle
 
 			apiMock.On("KVGet", "config_test-user", mock.Anything).Return(nil, nil)
 			apiMock.On("SendEphemeralPost", "test-user", &model.Post{
@@ -155,15 +152,15 @@ func TestCommandStartMeeting(t *testing.T) {
 		apiMock := plugintest.API{}
 		defer apiMock.AssertExpectations(t)
 		p.SetAPI(&apiMock)
-		p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", false)
+
 		apiMock.On("GetBundlePath").Return("..", nil)
 		config := model.Config{}
 		config.SetDefaults()
 		apiMock.On("GetConfig").Return(&config, nil)
 
-		i18nBundle, err := i18n.InitBundle(p.API, filepath.Join("assets", "i18n"))
+		i18nBundle, err := p.initI18nBundle()
 		require.Nil(t, err)
-		p.b = i18nBundle
+		p.i18nBundle = i18nBundle
 
 		apiMock.On("SendEphemeralPost", "test-user", mock.MatchedBy(func(post *model.Post) bool {
 			return post.Props["attachments"].([]*model.SlackAttachment)[0].Text == "Select type of meeting you want to start"
@@ -189,9 +186,9 @@ func TestCommandStartMeeting(t *testing.T) {
 		config.SetDefaults()
 		apiMock.On("GetConfig").Return(&config, nil)
 
-		i18nBundle, err := i18n.InitBundle(p.API, filepath.Join("assets", "i18n"))
+		i18nBundle, err := p.initI18nBundle()
 		require.Nil(t, err)
-		p.b = i18nBundle
+		p.i18nBundle = i18nBundle
 
 		apiMock.On("CreatePost", mock.MatchedBy(func(post *model.Post) bool {
 			return strings.HasPrefix(post.Props["meeting_link"].(string), "http://test/")
@@ -216,9 +213,9 @@ func TestCommandStartMeeting(t *testing.T) {
 		config.SetDefaults()
 		apiMock.On("GetConfig").Return(&config, nil)
 
-		i18nBundle, err := i18n.InitBundle(p.API, filepath.Join("assets", "i18n"))
+		i18nBundle, err := p.initI18nBundle()
 		require.Nil(t, err)
-		p.b = i18nBundle
+		p.i18nBundle = i18nBundle
 
 		apiMock.On("CreatePost", mock.MatchedBy(func(post *model.Post) bool {
 			return strings.HasPrefix(post.Props["meeting_link"].(string), "http://test/topic")
@@ -228,7 +225,7 @@ func TestCommandStartMeeting(t *testing.T) {
 		apiMock.On("GetUser", "test-user").Return(&model.User{Id: "test-user"}, nil)
 		apiMock.On("KVGet", "config_test-user", mock.Anything).Return(nil, nil)
 
-		response, err := p.ExecuteCommand(&plugin.Context{}, &model.CommandArgs{UserId: "test-user", ChannelId: "test-channel", Command: "/jitsi start topic"})
+		response, err := p.ExecuteCommand(&plugin.Context{}, &model.CommandArgs{UserId: "test-user", ChannelId: "test-channel", Command: "/jitsi topic"})
 		require.Equal(t, &model.CommandResponse{}, response)
 		require.Nil(t, err)
 	})
